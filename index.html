@@ -546,8 +546,12 @@
       <div class="teams-chips" id="teams-chips"></div>
     </div>
 
-    <!-- Switch team -->
-    <div class="switch-team" id="switch-team">Team wechseln</div>
+    <!-- Bottom actions -->
+    <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:24px;">
+      <div class="switch-team" id="delete-team">Team l&ouml;schen</div>
+      <div class="switch-team" id="switch-team">Team wechseln</div>
+      <button class="btn btn-outline" id="reset-btn" style="margin-top:8px; width:100%; border-color:#333; color:var(--text-dim); font-size:0.95rem;">Court zur&uuml;cksetzen</button>
+    </div>
   </div>
 
   <!-- Confirm Dialog -->
@@ -655,8 +659,15 @@
       resetBtn: 'Zur\u00fccksetzen',
       cancel: 'Abbrechen',
       resetDone: 'Court wurde zur\u00fcckgesetzt',
+      resetWarn: 'Bist du sicher? Wenn gerade gespielt wird und du hier alles platzmachst, wirst du offiziell zum Ehren-Bankdr\u00fccker ernannt. Unwiderruflich.',
       nameTaken: 'Name bereits vergeben',
       alreadyInQueue: 'Ihr seid bereits in der Warteschlange',
+      deleteTeam: 'Team l\u00f6schen',
+      deleteTitle: 'Team wirklich l\u00f6schen?',
+      deleteText: 'Euer Team wird komplett entfernt.',
+      deleteBtn: 'L\u00f6schen',
+      deleteDone: 'Team wurde gel\u00f6scht',
+      resetCourt: 'Court zur\u00fccksetzen',
       flag: '\ud83c\uddec\ud83c\udde7',
     },
     en: {
@@ -685,8 +696,15 @@
       resetBtn: 'Reset',
       cancel: 'Cancel',
       resetDone: 'Court has been reset',
+      resetWarn: "Are you sure? If there's a game going on and you nuke everything, you'll be officially crowned the ultimate benchwarmer. No take-backs.",
       nameTaken: 'Name already taken',
       alreadyInQueue: "You're already in the queue",
+      deleteTeam: 'Delete team',
+      deleteTitle: 'Really delete team?',
+      deleteText: 'Your team will be completely removed.',
+      deleteBtn: 'Delete',
+      deleteDone: 'Team has been deleted',
+      resetCourt: 'Reset court',
       flag: '\ud83c\udde9\ud83c\uddea',
     }
   };
@@ -715,6 +733,8 @@
     $('section-queue').textContent = t('queue');
     $('section-teams').textContent = t('teams');
     $('switch-team').textContent = t('switchTeam');
+    $('delete-team').textContent = t('deleteTeam');
+    $('reset-btn').textContent = t('resetCourt');
   }
 
   // Local state
@@ -764,19 +784,13 @@
   $('lang-toggle-register').onclick = toggleLang;
   $('lang-toggle-main').onclick = toggleLang;
 
-  // --- Reset (5x logo tap) ---
-  $('logo-tap').onclick = () => {
-    logoTapCount++;
-    clearTimeout(logoTapTimer);
-    logoTapTimer = setTimeout(() => { logoTapCount = 0; }, 2000);
-    if (logoTapCount >= 5) {
-      logoTapCount = 0;
-      $('reset-overlay').classList.add('active');
-      $('reset-title').textContent = t('resetTitle');
-      $('reset-text').textContent = t('resetText');
-      $('reset-no').textContent = t('cancel');
-      $('reset-yes').textContent = t('resetBtn');
-    }
+  // --- Reset court ---
+  $('reset-btn').onclick = () => {
+    $('reset-title').textContent = t('resetTitle');
+    $('reset-text').textContent = t('resetWarn');
+    $('reset-no').textContent = t('cancel');
+    $('reset-yes').textContent = t('resetBtn');
+    $('reset-overlay').classList.add('active');
   };
   $('reset-no').onclick = () => $('reset-overlay').classList.remove('active');
   $('reset-yes').onclick = async () => {
@@ -786,6 +800,35 @@
     myTeamId = null;
     showScreen('register');
     showToast(t('resetDone'));
+  };
+
+  // --- Delete team ---
+  $('delete-team').onclick = () => {
+    if (!myTeamId) return;
+    showConfirm(
+      t('deleteTitle'),
+      t('deleteText'),
+      t('deleteBtn'),
+      t('cancel'),
+      async () => {
+        // Remove from queue if present
+        const newQueue = state.queue.filter(id => id !== myTeamId);
+        if (newQueue.length !== state.queue.length) {
+          await set(queueRef, newQueue.length > 0 ? newQueue : null);
+        }
+        // If playing, clear current game
+        const game = state.currentGame;
+        if (game && (game.team1 === myTeamId || game.team2 === myTeamId)) {
+          await set(currentGameRef, null);
+        }
+        // Remove team
+        await remove(ref(db, 'court-king/teams/' + myTeamId));
+        localStorage.removeItem(LS_KEY);
+        myTeamId = null;
+        showScreen('register');
+        showToast(t('deleteDone'));
+      }
+    );
   };
 
   // --- Switch team ---
