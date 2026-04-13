@@ -830,12 +830,15 @@
     registerBtn.disabled = true;
     const newTeamRef = push(teamsRef);
     const teamId = newTeamRef.key;
-    await set(newTeamRef, { name, createdAt: Date.now() });
-    updateActivity();
 
+    // Optimistic: update local state immediately so render() works right away
     myTeamId = teamId;
     localStorage.setItem(LS_KEY, teamId);
-    showScreen('main');
+    state.teams[teamId] = { name, createdAt: Date.now() };
+    render();
+
+    await set(newTeamRef, { name, createdAt: Date.now() });
+    updateActivity();
   };
 
   // --- Check if my team still exists ---
