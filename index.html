@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>COURT KING</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --bg-card: #151515;
+      --bg-card-hover: #1a1a1a;
+      --text: #f5f0e8;
+      --text-dim: #8a8580;
+      --accent: #ff8c00;
+      --accent-glow: rgba(255, 140, 0, 0.25);
+      --danger: #ff4444;
+      --success: #44cc66;
+      --radius: 12px;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Barlow Condensed', sans-serif;
+      min-height: 100dvh;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 480px;
+      padding: 16px;
+      padding-bottom: 32px;
+    }
+
+    /* ---- Toast ---- */
+    #toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--accent);
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      z-index: 1000;
+      transition: transform 0.3s ease;
+      text-align: center;
+      max-width: 90vw;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ---- Registration Screen ---- */
+    #register-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80dvh;
+      gap: 32px;
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    .logo-sub {
+      font-size: 1rem;
+      color: var(--text-dim);
+      font-weight: 400;
+      margin-top: -8px;
+    }
+
+    .register-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    input[type="text"] {
+      background: var(--bg-card);
+      border: 2px solid #333;
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 600;
+      padding: 14px 16px;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+    input[type="text"]::placeholder {
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+
+    .btn {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px 24px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 48px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #ffa333;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #333;
+      color: var(--text);
+    }
+    .btn-outline:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-challenge {
+      background: var(--accent);
+      color: #000;
+      font-size: 1.4rem;
+      padding: 18px 24px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .btn-challenge:hover:not(:disabled) {
+      box-shadow: 0 0 30px var(--accent-glow);
+    }
+
+    /* ---- Main Screen ---- */
+    #main-screen { display: none; }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .header-logo {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: 1px;
+      cursor: pointer;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .my-team-badge {
+      background: var(--bg-card);
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-icon {
+      background: var(--bg-card);
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: var(--text);
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: border-color 0.2s;
+    }
+    .btn-icon:hover { border-color: var(--accent); }
+
+    /* Section titles */
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    /* Current Game */
+    .current-game {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .game-vs {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .game-team {
+      flex: 1;
+      background: var(--bg-card-hover);
+      border: 2px solid #333;
+      border-radius: var(--radius);
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 1.3rem;
+      font-weight: 700;
+      word-break: break-word;
+    }
+    .game-team:hover {
+      border-color: var(--accent);
+      background: rgba(255, 140, 0, 0.08);
+    }
+    .game-team:active { transform: scale(0.97); }
+    .vs-label {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .no-game {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      padding: 24px 0;
+    }
+
+    /* Challenge section */
+    .challenge-section {
+      margin-bottom: 20px;
+    }
+    .challenge-section .btn-challenge {
+      width: 100%;
+    }
+    .playing-badge {
+      text-align: center;
+      padding: 14px;
+      background: rgba(255, 140, 0, 0.12);
+      border: 2px solid var(--accent);
+      border-radius: var(--radius);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .in-queue-info {
+      text-align: center;
+      padding: 12px;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+    .queue-position {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .btn-withdraw {
+      background: transparent;
+      border: 2px solid var(--danger);
+      color: var(--danger);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 8px 20px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 44px;
+    }
+    .btn-withdraw:hover {
+      background: rgba(255, 68, 68, 0.1);
+    }
+
+    /* Queue */
+    .queue-section {
+      margin-bottom: 20px;
+    }
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .queue-item {
+      background: var(--bg-card);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      font-size: 1.05rem;
+      transition: all 0.3s ease;
+    }
+    .queue-item.is-me {
+      border: 1px solid var(--accent);
+    }
+    .queue-num {
+      color: var(--accent);
+      font-weight: 800;
+      min-width: 28px;
+    }
+    .queue-next {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .queue-empty {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      padding: 12px;
+    }
+
+    /* Teams section */
+    .teams-section {
+      margin-bottom: 20px;
+    }
+    .teams-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .team-chip {
+      background: var(--bg-card);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .team-chip.is-me {
+      border: 1px solid var(--accent);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-playing { background: var(--accent); }
+    .status-queue { background: var(--text-dim); }
+
+    /* Switch team link */
+    .switch-team {
+      display: block;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      margin-top: 16px;
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+    .switch-team:hover { color: var(--text); }
+
+    /* Confirm dialog */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .overlay.active { display: flex; }
+    .dialog {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+    }
+    .dialog h3 {
+      font-size: 1.3rem;
+      margin-bottom: 8px;
+    }
+    .dialog p {
+      color: var(--text-dim);
+      margin-bottom: 20px;
+      font-size: 1.05rem;
+    }
+    .dialog-buttons {
+      display: flex;
+      gap: 12px;
+    }
+    .dialog-buttons .btn { flex: 1; }
+
+    /* History overlay */
+    .history-list {
+      max-height: 60vh;
+      overflow-y: auto;
+      text-align: left;
+    }
+    .history-item {
+      padding: 12px 0;
+      border-bottom: 1px solid #222;
+      font-size: 1rem;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-winner { color: var(--accent); font-weight: 700; }
+    .history-loser { color: var(--text-dim); }
+    .history-empty {
+      text-align: center;
+      color: var(--text-dim);
+      padding: 24px 0;
+    }
+    .history-close {
+      margin-top: 16px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- Register Screen -->
+  <div id="register-screen">
+    <div>
+      <div class="logo">COURT KING</div>
+      <div class="logo-sub">King of the Court</div>
+    </div>
+    <div class="register-form">
+      <input type="text" id="team-name-input" placeholder="Teamname eingeben" maxlength="24" autocomplete="off">
+      <button class="btn btn-primary" id="register-btn" disabled>LOS</button>
+    </div>
+  </div>
+
+  <!-- Main Screen -->
+  <div id="main-screen">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-logo" id="logo-tap">COURT KING</div>
+      <div class="header-right">
+        <div class="my-team-badge" id="my-team-name"></div>
+        <div class="btn-icon" id="history-btn" title="Spielverlauf">&#128240;</div>
+      </div>
+    </div>
+
+    <!-- Current Game -->
+    <div class="section-title">Aktuelles Spiel</div>
+    <div class="current-game" id="current-game"></div>
+
+    <!-- Challenge -->
+    <div class="challenge-section" id="challenge-section"></div>
+
+    <!-- Queue -->
+    <div class="queue-section">
+      <div class="section-title">Warteschlange</div>
+      <div id="queue-list"></div>
+    </div>
+
+    <!-- Teams -->
+    <div class="teams-section">
+      <div class="section-title">Teams</div>
+      <div class="teams-chips" id="teams-chips"></div>
+    </div>
+
+    <!-- Switch team -->
+    <div class="switch-team" id="switch-team">Team wechseln</div>
+  </div>
+
+  <!-- Confirm Dialog -->
+  <div class="overlay" id="confirm-overlay">
+    <div class="dialog">
+      <h3 id="confirm-title"></h3>
+      <p id="confirm-text"></p>
+      <div class="dialog-buttons">
+        <button class="btn btn-outline" id="confirm-no">Nein</button>
+        <button class="btn btn-primary" id="confirm-yes">Ja</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Dialog -->
+  <div class="overlay" id="history-overlay">
+    <div class="dialog" style="max-width: 380px;">
+      <h3>Spielverlauf</h3>
+      <div class="history-list" id="history-list"></div>
+      <button class="btn btn-outline history-close" id="history-close">Schliessen</button>
+    </div>
+  </div>
+
+  <!-- Reset Confirm Dialog -->
+  <div class="overlay" id="reset-overlay">
+    <div class="dialog">
+      <h3>Court zurucksetzen?</h3>
+      <p>Alle Teams, Spiele und die Warteschlange werden geloscht.</p>
+      <div class="dialog-buttons">
+        <button class="btn btn-outline" id="reset-no">Abbrechen</button>
+        <button class="btn btn-danger" id="reset-yes">Zurucksetzen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js';
+  import {
+    getDatabase, ref, set, push, get, remove, update, onValue, serverTimestamp
+  } from 'https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js';
+
+  // TODO: Firebase Config hier einfuegen
+  const firebaseConfig = {
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJECT.firebaseapp.com",
+    databaseURL: "https://DEIN_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "DEIN_PROJECT",
+    storageBucket: "DEIN_PROJECT.appspot.com",
+    messagingSenderId: "DEINE_ID",
+    appId: "DEINE_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Refs
+  const teamsRef = ref(db, 'court-king/teams');
+  const queueRef = ref(db, 'court-king/queue');
+  const currentGameRef = ref(db, 'court-king/currentGame');
+  const historyRef = ref(db, 'court-king/history');
+  const lastActivityRef = ref(db, 'court-king/lastActivity');
+
+  const INACTIVITY_TIMEOUT = 4 * 60 * 60 * 1000; // 4 Stunden
+
+  // Local state
+  const LS_KEY = 'court-king-my-team';
+  let myTeamId = localStorage.getItem(LS_KEY);
+  let state = { teams: {}, queue: [], currentGame: null, history: {} };
+  let logoTapCount = 0;
+  let logoTapTimer = null;
+  let confirmCallback = null;
+
+  // --- DOM ---
+  const $ = id => document.getElementById(id);
+  const registerScreen = $('register-screen');
+  const mainScreen = $('main-screen');
+  const teamNameInput = $('team-name-input');
+  const registerBtn = $('register-btn');
+  const myTeamNameEl = $('my-team-name');
+  const currentGameEl = $('current-game');
+  const challengeSection = $('challenge-section');
+  const queueListEl = $('queue-list');
+  const teamsChipsEl = $('teams-chips');
+  const toastEl = $('toast');
+
+  // --- Toast ---
+  let toastTimer = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2500);
+  }
+
+  // --- Confirm dialog ---
+  function showConfirm(title, text, cb) {
+    $('confirm-title').textContent = title;
+    $('confirm-text').textContent = text;
+    $('confirm-overlay').classList.add('active');
+    confirmCallback = cb;
+  }
+  $('confirm-yes').onclick = () => {
+    $('confirm-overlay').classList.remove('active');
+    if (confirmCallback) confirmCallback();
+    confirmCallback = null;
+  };
+  $('confirm-no').onclick = () => {
+    $('confirm-overlay').classList.remove('active');
+    confirmCallback = null;
+  };
+
+  // --- History dialog ---
+  $('history-btn').onclick = () => {
+    renderHistory();
+    $('history-overlay').classList.add('active');
+  };
+  $('history-close').onclick = () => $('history-overlay').classList.remove('active');
+
+  // --- Reset (5x logo tap) ---
+  $('logo-tap').onclick = () => {
+    logoTapCount++;
+    clearTimeout(logoTapTimer);
+    logoTapTimer = setTimeout(() => { logoTapCount = 0; }, 2000);
+    if (logoTapCount >= 5) {
+      logoTapCount = 0;
+      $('reset-overlay').classList.add('active');
+    }
+  };
+  $('reset-no').onclick = () => $('reset-overlay').classList.remove('active');
+  $('reset-yes').onclick = async () => {
+    $('reset-overlay').classList.remove('active');
+    await remove(ref(db, 'court-king'));
+    localStorage.removeItem(LS_KEY);
+    myTeamId = null;
+    showScreen('register');
+    showToast('Court wurde zuruckgesetzt');
+  };
+
+  // --- Switch team ---
+  $('switch-team').onclick = () => {
+    localStorage.removeItem(LS_KEY);
+    myTeamId = null;
+    showScreen('register');
+  };
+
+  // --- Screen switching ---
+  function showScreen(screen) {
+    if (screen === 'register') {
+      registerScreen.style.display = 'flex';
+      mainScreen.style.display = 'none';
+      teamNameInput.value = '';
+      registerBtn.disabled = true;
+    } else {
+      registerScreen.style.display = 'none';
+      mainScreen.style.display = 'block';
+    }
+  }
+
+  // --- Registration ---
+  teamNameInput.addEventListener('input', () => {
+    registerBtn.disabled = teamNameInput.value.trim().length === 0;
+  });
+
+  teamNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !registerBtn.disabled) registerBtn.click();
+  });
+
+  registerBtn.onclick = async () => {
+    const name = teamNameInput.value.trim();
+    if (!name) return;
+
+    // Check duplicate names
+    const existingNames = Object.values(state.teams).map(t => t.name.toLowerCase());
+    if (existingNames.includes(name.toLowerCase())) {
+      showToast('Name bereits vergeben');
+      return;
+    }
+
+    registerBtn.disabled = true;
+    const newTeamRef = push(teamsRef);
+    const teamId = newTeamRef.key;
+    await set(newTeamRef, { name, createdAt: Date.now() });
+    updateActivity();
+
+    myTeamId = teamId;
+    localStorage.setItem(LS_KEY, teamId);
+    showScreen('main');
+  };
+
+  // --- Check if my team still exists ---
+  function validateMyTeam() {
+    if (myTeamId && !state.teams[myTeamId]) {
+      // Team was deleted (reset), go back to register
+      localStorage.removeItem(LS_KEY);
+      myTeamId = null;
+      showScreen('register');
+      return false;
+    }
+    return true;
+  }
+
+  // --- Render ---
+  function render() {
+    if (!validateMyTeam()) return;
+    if (!myTeamId) {
+      showScreen('register');
+      return;
+    }
+
+    showScreen('main');
+
+    const myTeam = state.teams[myTeamId];
+    myTeamNameEl.textContent = myTeam ? myTeam.name : '???';
+
+    renderCurrentGame();
+    renderChallenge();
+    renderQueue();
+    renderTeams();
+  }
+
+  function teamName(id) {
+    return state.teams[id]?.name || '???';
+  }
+
+  function renderCurrentGame() {
+    const game = state.currentGame;
+    if (!game || !game.team1 || !game.team2) {
+      currentGameEl.innerHTML = '<div class="no-game">Kein Spiel aktiv &mdash; mindestens 2 Teams mussen fordern</div>';
+      return;
+    }
+
+    currentGameEl.innerHTML = `
+      <div class="game-vs">
+        <div class="game-team" data-team="${game.team1}">${teamName(game.team1)}</div>
+        <div class="vs-label">VS</div>
+        <div class="game-team" data-team="${game.team2}">${teamName(game.team2)}</div>
+      </div>
+    `;
+
+    currentGameEl.querySelectorAll('.game-team').forEach(el => {
+      el.onclick = () => {
+        const winnerId = el.dataset.team;
+        const winnerName = teamName(winnerId);
+        showConfirm(
+          `${winnerName} hat gewonnen?`,
+          'Spiel wird beendet und der Gewinner bleibt auf dem Court.',
+          () => endGame(winnerId)
+        );
+      };
+    });
+  }
+
+  function renderChallenge() {
+    const game = state.currentGame;
+    const isPlaying = game && (game.team1 === myTeamId || game.team2 === myTeamId);
+    const queueIndex = state.queue.indexOf(myTeamId);
+    const inQueue = queueIndex >= 0;
+
+    if (isPlaying) {
+      challengeSection.innerHTML = '<div class="playing-badge">Ihr spielt gerade!</div>';
+    } else if (inQueue) {
+      const gamesWait = queueIndex;
+      const waitText = gamesWait === 0 ? 'Ihr seid als Nachstes dran!' : `Platz #${queueIndex + 1} \u2014 noch ${gamesWait} Spiel${gamesWait > 1 ? 'e' : ''} warten`;
+      challengeSection.innerHTML = `
+        <div class="in-queue-info">
+          <div class="queue-position">${waitText}</div>
+          <button class="btn-withdraw" id="withdraw-btn">Zuruckziehen</button>
+        </div>
+      `;
+      $('withdraw-btn').onclick = withdraw;
+    } else {
+      challengeSection.innerHTML = '<button class="btn btn-challenge" id="challenge-btn">FORDERN</button>';
+      $('challenge-btn').onclick = challenge;
+    }
+  }
+
+  function renderQueue() {
+    if (state.queue.length === 0) {
+      queueListEl.innerHTML = '<div class="queue-empty">Noch niemand in der Warteschlange</div>';
+      return;
+    }
+
+    queueListEl.innerHTML = state.queue.map((id, i) => `
+      <div class="queue-item ${id === myTeamId ? 'is-me' : ''}">
+        <span class="queue-num">#${i + 1}</span>
+        <span>${teamName(id)}</span>
+        ${i === 0 ? '<span class="queue-next">NEXT</span>' : ''}
+      </div>
+    `).join('');
+  }
+
+  function renderTeams() {
+    const game = state.currentGame;
+    const entries = Object.entries(state.teams);
+
+    teamsChipsEl.innerHTML = entries.map(([id, team]) => {
+      const isPlaying = game && (game.team1 === id || game.team2 === id);
+      const inQueue = state.queue.includes(id);
+      let statusHtml = '';
+      if (isPlaying) statusHtml = '<span class="status-dot status-playing"></span>';
+      else if (inQueue) statusHtml = '<span class="status-dot status-queue"></span>';
+
+      return `<div class="team-chip ${id === myTeamId ? 'is-me' : ''}">${statusHtml}${team.name}</div>`;
+    }).join('');
+  }
+
+  function renderHistory() {
+    const items = Object.values(state.history || {}).sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0));
+    if (items.length === 0) {
+      $('history-list').innerHTML = '<div class="history-empty">Noch keine Spiele beendet</div>';
+      return;
+    }
+    $('history-list').innerHTML = items.map(h => `
+      <div class="history-item">
+        <span class="history-winner">${teamName(h.winner)}</span>
+        <span style="color:var(--text-dim)"> vs </span>
+        <span class="history-loser">${teamName(h.loser)}</span>
+      </div>
+    `).join('');
+  }
+
+  // --- Activity tracking & auto-reset ---
+  function updateActivity() {
+    set(lastActivityRef, Date.now());
+  }
+
+  async function checkAutoReset() {
+    const snap = await get(lastActivityRef);
+    const lastActivity = snap.val();
+    if (lastActivity && (Date.now() - lastActivity) >= INACTIVITY_TIMEOUT) {
+      await remove(ref(db, 'court-king'));
+      localStorage.removeItem(LS_KEY);
+      myTeamId = null;
+      showScreen('register');
+    }
+  }
+
+  // Check on load and every 10 minutes
+  checkAutoReset();
+  setInterval(checkAutoReset, 10 * 60 * 1000);
+
+  // --- Actions ---
+  async function challenge() {
+    if (!myTeamId) return;
+
+    // Already in queue?
+    if (state.queue.includes(myTeamId)) {
+      showToast('Ihr seid bereits in der Warteschlange');
+      return;
+    }
+
+    // Already playing?
+    const game = state.currentGame;
+    if (game && (game.team1 === myTeamId || game.team2 === myTeamId)) {
+      return;
+    }
+
+    const newQueue = [...state.queue, myTeamId];
+    await set(queueRef, newQueue);
+    updateActivity();
+
+    // Auto-start if 2+ in queue and no game
+    await tryAutoStart();
+  }
+
+  async function withdraw() {
+    const newQueue = state.queue.filter(id => id !== myTeamId);
+    await set(queueRef, newQueue);
+  }
+
+  async function endGame(winnerId) {
+    const game = state.currentGame;
+    if (!game) return;
+
+    const loserId = game.team1 === winnerId ? game.team2 : game.team1;
+
+    // Push to history
+    await push(historyRef, {
+      winner: winnerId,
+      loser: loserId,
+      endedAt: Date.now()
+    });
+    updateActivity();
+
+    // Next game
+    if (state.queue.length > 0) {
+      const nextTeam = state.queue[0];
+      const newQueue = state.queue.slice(1);
+
+      await update(ref(db, 'court-king'), {
+        'currentGame/team1': winnerId,
+        'currentGame/team2': nextTeam,
+        'currentGame/startedAt': Date.now(),
+        'queue': newQueue.length > 0 ? newQueue : null
+      });
+    } else {
+      await set(currentGameRef, null);
+    }
+  }
+
+  async function tryAutoStart() {
+    // Re-read fresh state
+    const snap = await get(ref(db, 'court-king'));
+    const data = snap.val() || {};
+    const queue = data.queue || [];
+    const game = data.currentGame;
+
+    if (!game && queue.length >= 2) {
+      const team1 = queue[0];
+      const team2 = queue[1];
+      const newQueue = queue.slice(2);
+
+      await update(ref(db, 'court-king'), {
+        'currentGame': { team1, team2, startedAt: Date.now() },
+        'queue': newQueue.length > 0 ? newQueue : null
+      });
+    }
+  }
+
+  // --- Firebase Listener ---
+  onValue(ref(db, 'court-king'), (snapshot) => {
+    const data = snapshot.val() || {};
+    state.teams = data.teams || {};
+    state.currentGame = data.currentGame || null;
+    state.history = data.history || {};
+
+    // Queue: could be array or object with numeric keys
+    const rawQueue = data.queue;
+    if (Array.isArray(rawQueue)) {
+      state.queue = rawQueue.filter(Boolean);
+    } else if (rawQueue && typeof rawQueue === 'object') {
+      state.queue = Object.values(rawQueue).filter(Boolean);
+    } else {
+      state.queue = [];
+    }
+
+    render();
+  });
+
+  // --- Init ---
+  if (myTeamId) {
+    showScreen('main');
+  } else {
+    showScreen('register');
+  }
+</script>
+</body>
+</html>
