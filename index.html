@@ -415,6 +415,28 @@
     }
     .switch-team:hover { color: var(--text); }
 
+    /* Language toggle */
+    .lang-toggle {
+      background: var(--bg-card);
+      border: 1px solid #333;
+      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.3rem;
+      transition: border-color 0.2s;
+      line-height: 1;
+    }
+    .lang-toggle:hover { border-color: var(--accent); }
+    .lang-toggle-register {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+    }
+
     /* Confirm dialog */
     .overlay {
       position: fixed;
@@ -482,12 +504,13 @@
 
   <!-- Register Screen -->
   <div id="register-screen">
+    <div class="lang-toggle lang-toggle-register" id="lang-toggle-register"></div>
     <div>
       <div class="logo">COURT KING</div>
       <div class="logo-sub">King of the Court</div>
     </div>
     <div class="register-form">
-      <input type="text" id="team-name-input" placeholder="Teamname eingeben" maxlength="24" autocomplete="off">
+      <input type="text" id="team-name-input" placeholder="" maxlength="24" autocomplete="off">
       <button class="btn btn-primary" id="register-btn" disabled>LOS</button>
     </div>
   </div>
@@ -499,12 +522,13 @@
       <div class="header-logo" id="logo-tap">COURT KING</div>
       <div class="header-right">
         <div class="my-team-badge" id="my-team-name"></div>
+        <div class="lang-toggle" id="lang-toggle-main"></div>
         <div class="btn-icon" id="history-btn" title="Spielverlauf">&#128240;</div>
       </div>
     </div>
 
     <!-- Current Game -->
-    <div class="section-title">Aktuelles Spiel</div>
+    <div class="section-title" id="section-current-game">Aktuelles Spiel</div>
     <div class="current-game" id="current-game"></div>
 
     <!-- Challenge -->
@@ -512,13 +536,13 @@
 
     <!-- Queue -->
     <div class="queue-section">
-      <div class="section-title">Warteschlange</div>
+      <div class="section-title" id="section-queue">Warteschlange</div>
       <div id="queue-list"></div>
     </div>
 
     <!-- Teams -->
     <div class="teams-section">
-      <div class="section-title">Teams</div>
+      <div class="section-title" id="section-teams">Teams</div>
       <div class="teams-chips" id="teams-chips"></div>
     </div>
 
@@ -541,7 +565,7 @@
   <!-- History Dialog -->
   <div class="overlay" id="history-overlay">
     <div class="dialog" style="max-width: 380px;">
-      <h3>Spielverlauf</h3>
+      <h3 id="history-title">Spielverlauf</h3>
       <div class="history-list" id="history-list"></div>
       <button class="btn btn-outline history-close" id="history-close">Schliessen</button>
     </div>
@@ -550,8 +574,8 @@
   <!-- Reset Confirm Dialog -->
   <div class="overlay" id="reset-overlay">
     <div class="dialog">
-      <h3>Court zurucksetzen?</h3>
-      <p>Alle Teams, Spiele und die Warteschlange werden geloscht.</p>
+      <h3 id="reset-title">Court zurucksetzen?</h3>
+      <p id="reset-text">Alle Teams, Spiele und die Warteschlange werden geloscht.</p>
       <div class="dialog-buttons">
         <button class="btn btn-outline" id="reset-no">Abbrechen</button>
         <button class="btn btn-danger" id="reset-yes">Zurucksetzen</button>
@@ -587,15 +611,7 @@
   const historyRef = ref(db, 'court-king/history');
   const lastActivityRef = ref(db, 'court-king/lastActivity');
 
-  const INACTIVITY_TIMEOUT = 4 * 60 * 60 * 1000; // 4 Stunden
-
-  // Local state
-  const LS_KEY = 'court-king-my-team';
-  let myTeamId = localStorage.getItem(LS_KEY);
-  let state = { teams: {}, queue: [], currentGame: null, history: {} };
-  let logoTapCount = 0;
-  let logoTapTimer = null;
-  let confirmCallback = null;
+  const INACTIVITY_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours
 
   // --- DOM ---
   const $ = id => document.getElementById(id);
@@ -610,6 +626,105 @@
   const teamsChipsEl = $('teams-chips');
   const toastEl = $('toast');
 
+  // --- i18n ---
+  const LANG_KEY = 'court-king-lang';
+  const translations = {
+    de: {
+      placeholder: 'Teamname eingeben',
+      go: 'LOS',
+      currentGame: 'Aktuelles Spiel',
+      noGame: 'Kein Spiel aktiv \u2014 mindestens 2 Teams m\u00fcssen fordern',
+      challenge: 'FORDERN',
+      playing: 'Ihr spielt gerade!',
+      nextUp: 'Ihr seid als N\u00e4chstes dran!',
+      queuePos: (pos, wait) => `Platz #${pos} \u2014 noch ${wait} Spiel${wait > 1 ? 'e' : ''} warten`,
+      withdraw: 'Zur\u00fcckziehen',
+      queue: 'Warteschlange',
+      queueEmpty: 'Noch niemand in der Warteschlange',
+      teams: 'Teams',
+      switchTeam: 'Team wechseln',
+      won: (name) => `${name} hat gewonnen?`,
+      wonText: 'Spiel wird beendet und der Gewinner bleibt auf dem Court.',
+      yes: 'Ja',
+      no: 'Nein',
+      history: 'Spielverlauf',
+      historyEmpty: 'Noch keine Spiele beendet',
+      close: 'Schliessen',
+      resetTitle: 'Court zur\u00fccksetzen?',
+      resetText: 'Alle Teams, Spiele und die Warteschlange werden gel\u00f6scht.',
+      resetBtn: 'Zur\u00fccksetzen',
+      cancel: 'Abbrechen',
+      resetDone: 'Court wurde zur\u00fcckgesetzt',
+      nameTaken: 'Name bereits vergeben',
+      alreadyInQueue: 'Ihr seid bereits in der Warteschlange',
+      flag: '\ud83c\uddec\ud83c\udde7',
+    },
+    en: {
+      placeholder: 'Enter team name',
+      go: 'GO',
+      currentGame: 'Current Game',
+      noGame: 'No game active \u2014 at least 2 teams must challenge',
+      challenge: 'CHALLENGE',
+      playing: "You're playing!",
+      nextUp: "You're up next!",
+      queuePos: (pos, wait) => `Position #${pos} \u2014 ${wait} game${wait > 1 ? 's' : ''} to wait`,
+      withdraw: 'Withdraw',
+      queue: 'Queue',
+      queueEmpty: 'Nobody in the queue yet',
+      teams: 'Teams',
+      switchTeam: 'Switch team',
+      won: (name) => `${name} won?`,
+      wonText: 'Game ends and the winner stays on court.',
+      yes: 'Yes',
+      no: 'No',
+      history: 'Match History',
+      historyEmpty: 'No games finished yet',
+      close: 'Close',
+      resetTitle: 'Reset court?',
+      resetText: 'All teams, games and the queue will be deleted.',
+      resetBtn: 'Reset',
+      cancel: 'Cancel',
+      resetDone: 'Court has been reset',
+      nameTaken: 'Name already taken',
+      alreadyInQueue: "You're already in the queue",
+      flag: '\ud83c\udde9\ud83c\uddea',
+    }
+  };
+
+  let lang = localStorage.getItem(LANG_KEY) || 'de';
+  function t(key) { return translations[lang][key]; }
+
+  function toggleLang() {
+    lang = lang === 'de' ? 'en' : 'de';
+    localStorage.setItem(LANG_KEY, lang);
+    updateLangButtons();
+    applyStaticTexts();
+    render();
+  }
+
+  function updateLangButtons() {
+    const flag = t('flag');
+    $('lang-toggle-register').textContent = flag;
+    $('lang-toggle-main').textContent = flag;
+  }
+
+  function applyStaticTexts() {
+    teamNameInput.placeholder = t('placeholder');
+    registerBtn.textContent = t('go');
+    $('section-current-game').textContent = t('currentGame');
+    $('section-queue').textContent = t('queue');
+    $('section-teams').textContent = t('teams');
+    $('switch-team').textContent = t('switchTeam');
+  }
+
+  // Local state
+  const LS_KEY = 'court-king-my-team';
+  let myTeamId = localStorage.getItem(LS_KEY);
+  let state = { teams: {}, queue: [], currentGame: null, history: {} };
+  let logoTapCount = 0;
+  let logoTapTimer = null;
+  let confirmCallback = null;
+
   // --- Toast ---
   let toastTimer = null;
   function showToast(msg) {
@@ -620,9 +735,11 @@
   }
 
   // --- Confirm dialog ---
-  function showConfirm(title, text, cb) {
+  function showConfirm(title, text, yesTxt, noTxt, cb) {
     $('confirm-title').textContent = title;
     $('confirm-text').textContent = text;
+    $('confirm-yes').textContent = yesTxt;
+    $('confirm-no').textContent = noTxt;
     $('confirm-overlay').classList.add('active');
     confirmCallback = cb;
   }
@@ -643,6 +760,10 @@
   };
   $('history-close').onclick = () => $('history-overlay').classList.remove('active');
 
+  // --- Language toggles ---
+  $('lang-toggle-register').onclick = toggleLang;
+  $('lang-toggle-main').onclick = toggleLang;
+
   // --- Reset (5x logo tap) ---
   $('logo-tap').onclick = () => {
     logoTapCount++;
@@ -651,6 +772,10 @@
     if (logoTapCount >= 5) {
       logoTapCount = 0;
       $('reset-overlay').classList.add('active');
+      $('reset-title').textContent = t('resetTitle');
+      $('reset-text').textContent = t('resetText');
+      $('reset-no').textContent = t('cancel');
+      $('reset-yes').textContent = t('resetBtn');
     }
   };
   $('reset-no').onclick = () => $('reset-overlay').classList.remove('active');
@@ -660,7 +785,7 @@
     localStorage.removeItem(LS_KEY);
     myTeamId = null;
     showScreen('register');
-    showToast('Court wurde zuruckgesetzt');
+    showToast(t('resetDone'));
   };
 
   // --- Switch team ---
@@ -696,10 +821,9 @@
     const name = teamNameInput.value.trim();
     if (!name) return;
 
-    // Check duplicate names
     const existingNames = Object.values(state.teams).map(t => t.name.toLowerCase());
     if (existingNames.includes(name.toLowerCase())) {
-      showToast('Name bereits vergeben');
+      showToast(t('nameTaken'));
       return;
     }
 
@@ -717,7 +841,6 @@
   // --- Check if my team still exists ---
   function validateMyTeam() {
     if (myTeamId && !state.teams[myTeamId]) {
-      // Team was deleted (reset), go back to register
       localStorage.removeItem(LS_KEY);
       myTeamId = null;
       showScreen('register');
@@ -752,7 +875,7 @@
   function renderCurrentGame() {
     const game = state.currentGame;
     if (!game || !game.team1 || !game.team2) {
-      currentGameEl.innerHTML = '<div class="no-game">Kein Spiel aktiv &mdash; mindestens 2 Teams mussen fordern</div>';
+      currentGameEl.innerHTML = `<div class="no-game">${t('noGame')}</div>`;
       return;
     }
 
@@ -769,8 +892,10 @@
         const winnerId = el.dataset.team;
         const winnerName = teamName(winnerId);
         showConfirm(
-          `${winnerName} hat gewonnen?`,
-          'Spiel wird beendet und der Gewinner bleibt auf dem Court.',
+          t('won')(winnerName),
+          t('wonText'),
+          t('yes'),
+          t('no'),
           () => endGame(winnerId)
         );
       };
@@ -784,26 +909,26 @@
     const inQueue = queueIndex >= 0;
 
     if (isPlaying) {
-      challengeSection.innerHTML = '<div class="playing-badge">Ihr spielt gerade!</div>';
+      challengeSection.innerHTML = `<div class="playing-badge">${t('playing')}</div>`;
     } else if (inQueue) {
       const gamesWait = queueIndex;
-      const waitText = gamesWait === 0 ? 'Ihr seid als Nachstes dran!' : `Platz #${queueIndex + 1} \u2014 noch ${gamesWait} Spiel${gamesWait > 1 ? 'e' : ''} warten`;
+      const waitText = gamesWait === 0 ? t('nextUp') : t('queuePos')(queueIndex + 1, gamesWait);
       challengeSection.innerHTML = `
         <div class="in-queue-info">
           <div class="queue-position">${waitText}</div>
-          <button class="btn-withdraw" id="withdraw-btn">Zuruckziehen</button>
+          <button class="btn-withdraw" id="withdraw-btn">${t('withdraw')}</button>
         </div>
       `;
       $('withdraw-btn').onclick = withdraw;
     } else {
-      challengeSection.innerHTML = '<button class="btn btn-challenge" id="challenge-btn">FORDERN</button>';
+      challengeSection.innerHTML = `<button class="btn btn-challenge" id="challenge-btn">${t('challenge')}</button>`;
       $('challenge-btn').onclick = challenge;
     }
   }
 
   function renderQueue() {
     if (state.queue.length === 0) {
-      queueListEl.innerHTML = '<div class="queue-empty">Noch niemand in der Warteschlange</div>';
+      queueListEl.innerHTML = `<div class="queue-empty">${t('queueEmpty')}</div>`;
       return;
     }
 
@@ -832,9 +957,11 @@
   }
 
   function renderHistory() {
+    $('history-title').textContent = t('history');
+    $('history-close').textContent = t('close');
     const items = Object.values(state.history || {}).sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0));
     if (items.length === 0) {
-      $('history-list').innerHTML = '<div class="history-empty">Noch keine Spiele beendet</div>';
+      $('history-list').innerHTML = `<div class="history-empty">${t('historyEmpty')}</div>`;
       return;
     }
     $('history-list').innerHTML = items.map(h => `
@@ -870,13 +997,11 @@
   async function challenge() {
     if (!myTeamId) return;
 
-    // Already in queue?
     if (state.queue.includes(myTeamId)) {
-      showToast('Ihr seid bereits in der Warteschlange');
+      showToast(t('alreadyInQueue'));
       return;
     }
 
-    // Already playing?
     const game = state.currentGame;
     if (game && (game.team1 === myTeamId || game.team2 === myTeamId)) {
       return;
@@ -886,7 +1011,6 @@
     await set(queueRef, newQueue);
     updateActivity();
 
-    // Auto-start if 2+ in queue and no game
     await tryAutoStart();
   }
 
@@ -901,7 +1025,6 @@
 
     const loserId = game.team1 === winnerId ? game.team2 : game.team1;
 
-    // Push to history
     await push(historyRef, {
       winner: winnerId,
       loser: loserId,
@@ -909,7 +1032,6 @@
     });
     updateActivity();
 
-    // Next game
     if (state.queue.length > 0) {
       const nextTeam = state.queue[0];
       const newQueue = state.queue.slice(1);
@@ -926,7 +1048,6 @@
   }
 
   async function tryAutoStart() {
-    // Re-read fresh state
     const snap = await get(ref(db, 'court-king'));
     const data = snap.val() || {};
     const queue = data.queue || [];
@@ -951,7 +1072,6 @@
     state.currentGame = data.currentGame || null;
     state.history = data.history || {};
 
-    // Queue: could be array or object with numeric keys
     const rawQueue = data.queue;
     if (Array.isArray(rawQueue)) {
       state.queue = rawQueue.filter(Boolean);
@@ -965,6 +1085,8 @@
   });
 
   // --- Init ---
+  updateLangButtons();
+  applyStaticTexts();
   if (myTeamId) {
     showScreen('main');
   } else {
